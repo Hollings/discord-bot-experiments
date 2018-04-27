@@ -6,11 +6,16 @@ import (
 	"os/signal"
 	"syscall"
 	"log"
-	"net/http"
+	"context"
+	// "net/http"
 	"github.com/zmb3/spotify"
 	"strings"
+	 "reflect"
+	 "regexp"
 	"github.com/bwmarrin/discordgo"
 	"github.com/tkanos/gonfig"
+	"golang.org/x/oauth2/clientcredentials"
+
 )
 
 // I need to clean up this config code
@@ -25,11 +30,17 @@ type Configuration struct {
 }
 
 var (
-	spotifyState string
-	spotifyAuth = spotify.NewAuthenticator("http://localhost", spotify.ScopeUserReadPrivate)
+	spotifyState = "abc123"
+	client spotify.Client
+	spotifyAuth spotify.Authenticator
 	spotifyCh = make(chan *spotify.Client)
-	DiscordSecret string
+	DiscordSecret = configuration.DiscordSecret
 	configuration Configuration;
+	userID string = "hollingsxd"
+	 html = `
+Logged in
+`
+
 )
 	
 func init() {
@@ -40,41 +51,41 @@ func init() {
 	}
 	os.Setenv("SPOTIFY_ID", configuration.SpotifyClientId)
 	os.Setenv("SPOTIFY_SECRET", configuration.SpotifySecret)
-	DiscordSecret = configuration.DiscordSecret
+	spotifyAuth = spotify.NewAuthenticator(configuration.SpotifyRedirectURI, spotify.ScopeUserReadCurrentlyPlaying, spotify.ScopeUserReadPlaybackState, spotify.ScopeUserModifyPlaybackState)
+
 }
 
-func testConnectSpotify(){
+func ConnectSpotify(){
 
-	fmt.Println("this is just a test")
-
-	http.HandleFunc("/callback", completeAuth)
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Println("Got request for:", r.URL.String())
-	})
-	go http.ListenAndServe(":8080", nil)
-
-	url := spotifyAuth.AuthURL(spotifyState)
-	fmt.Println("Please log in to Spotify by visiting the following page in your browser:", url)
-
-	// wait for auth to complete
-	client := <-spotifyCh
-
-	// use the client to make calls that require authorization
-	user, err := client.CurrentUser()
+	config := &clientcredentials.Config{
+		ClientID:     os.Getenv("SPOTIFY_ID"),
+		ClientSecret: os.Getenv("SPOTIFY_SECRET"),
+		TokenURL:     spotify.TokenURL,
+	}
+	token, err := config.Token(context.Background())
 	if err != nil {
+		log.Fatalf("couldn't get token: %v", err)
+	}
+
+	client = spotify.Authenticator{}.NewClient(token)
+
+}
+func spotifyFindTrack(trackId string) string{
+			// search for playlists and albums containing "holiday"
+	results, err := client.GetTrack(spotify.ID(trackId))
+
+	if err != nil {
+		return "Not Found"
 		log.Fatal(err)
 	}
-	fmt.Println("You are logged in as:", user.ID)
+	fmt.Println(results.Name)
 
-}
+	return results.Name
+} 
 
-func completeAuth(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("completeAuth")
-}
 
 func main() {
-
-	// testConnectSpotify();
+	ConnectSpotify()
 	dg, err := discordgo.New("Bot " + configuration.DiscordBotToken)
 	if err != nil {
 		fmt.Println("error creating bot: " , err)
@@ -103,23 +114,35 @@ func main() {
 
 // This runs every time a message is received
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-
+	fmt.Println(m.Content)
 	if (checkValidLink(m.Content)) {
 		s.ChannelMessageSend(m.ChannelID, "Spotify link found, adding to playlist")
-		addToPlaylist(m.Content)
+		songName := addToPlaylist(m.Content)
+		s.ChannelMessageSend(m.ChannelID, songName)
+		fmt.Println(reflect.TypeOf(songName))
+
+
 	}
 
 }
 
+
 // Check if this message contains a spotify song
 func checkValidLink(content string) bool {
+
 	if( strings.Contains(content, "open.spotify.com")) {
 		return true
 	}
 	return false
 }
 
+
 // Add song to spotify playlist
-func addToPlaylist(content string) bool {
-	return true
+func addToPlaylist(content string) string {
+
+	re := regexp.MustCompile("[a-zA-Z0-9]{22}")
+	songId := re.FindString(content)
+	songName := spotifyFindTrack(songId)
+	return songName
+
 }
