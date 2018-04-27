@@ -118,7 +118,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if (checkValidLink(m.Content)) {
 
 		addToPlaylist(m.Content)
-		fmt.Println(s.MessageReactionAdd(m.ChannelID, m.ID, "👍"))
+		s.MessageReactionAdd(m.ChannelID, m.ID, "🎵")
 
 	}
 
