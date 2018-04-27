@@ -10,8 +10,8 @@ import (
 	// "net/http"
 	"github.com/zmb3/spotify"
 	"strings"
-	 "reflect"
-	 "regexp"
+	// "reflect"
+	"regexp"
 	"github.com/bwmarrin/discordgo"
 	"github.com/tkanos/gonfig"
 	"golang.org/x/oauth2/clientcredentials"
@@ -116,11 +116,9 @@ func main() {
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	fmt.Println(m.Content)
 	if (checkValidLink(m.Content)) {
-		s.ChannelMessageSend(m.ChannelID, "Spotify link found, adding to playlist")
-		songName := addToPlaylist(m.Content)
-		s.ChannelMessageSend(m.ChannelID, songName)
-		fmt.Println(reflect.TypeOf(songName))
 
+		addToPlaylist(m.Content)
+		fmt.Println(s.MessageReactionAdd(m.ChannelID, m.ID, "👍"))
 
 	}
 
