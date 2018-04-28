@@ -37,9 +37,6 @@ var (
 	DiscordSecret = configuration.DiscordSecret
 	configuration Configuration;
 	userID string = "hollingsxd"
-	 html = `
-Logged in
-`
 
 )
 	
@@ -51,41 +48,15 @@ func init() {
 	}
 	os.Setenv("SPOTIFY_ID", configuration.SpotifyClientId)
 	os.Setenv("SPOTIFY_SECRET", configuration.SpotifySecret)
-	spotifyAuth = spotify.NewAuthenticator(configuration.SpotifyRedirectURI, spotify.ScopeUserReadCurrentlyPlaying, spotify.ScopeUserReadPlaybackState, spotify.ScopeUserModifyPlaybackState)
-
+	spotifyAuth = spotify.NewAuthenticator(configuration.SpotifyRedirectURI, spotify.ScopeUserReadCurrentlyPlaying, spotify.ScopeUserReadPlaybackState, spotify.ScopeUserModifyPlaybackState, spotify.ScopePlaylistModifyPrivate)
 }
-
-func ConnectSpotify(){
-
-	config := &clientcredentials.Config{
-		ClientID:     os.Getenv("SPOTIFY_ID"),
-		ClientSecret: os.Getenv("SPOTIFY_SECRET"),
-		TokenURL:     spotify.TokenURL,
-	}
-	token, err := config.Token(context.Background())
-	if err != nil {
-		log.Fatalf("couldn't get token: %v", err)
-	}
-
-	client = spotify.Authenticator{}.NewClient(token)
-
-}
-func spotifyFindTrack(trackId string) string{
-			// search for playlists and albums containing "holiday"
-	results, err := client.GetTrack(spotify.ID(trackId))
-
-	if err != nil {
-		return "Not Found"
-		log.Fatal(err)
-	}
-	fmt.Println(results.Name)
-
-	return results.Name
-} 
 
 
 func main() {
+
 	ConnectSpotify()
+	spotifyAddToPlaylist("hollingsxd","2z2WuA7x7Op9TvBoYh7y3w")
+
 	dg, err := discordgo.New("Bot " + configuration.DiscordBotToken)
 	if err != nil {
 		fmt.Println("error creating bot: " , err)
@@ -122,6 +93,51 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	}
 
+}
+
+
+func ConnectSpotify(){
+
+	config := &clientcredentials.Config{
+		ClientID:     os.Getenv("SPOTIFY_ID"),
+		ClientSecret: os.Getenv("SPOTIFY_SECRET"),
+		TokenURL:     spotify.TokenURL,
+	}
+	token, err := config.Token(context.Background())
+	if err != nil {
+		log.Fatalf("couldn't get token: %v", err)
+	}
+	fmt.Println(token)
+	fmt.Println(reflect.TypeOf(token))
+	client = spotify.Authenticator{}.NewClient(token)
+
+}
+
+func spotifyFindTrack(trackId string) string{
+	results, err := client.GetTrack(spotify.ID(trackId))
+
+	if err != nil {
+		return "Not Found"
+		log.Fatal(err)
+	}
+	fmt.Println(results.Name)
+
+	return results.Name
+} 
+
+func spotifyAddToPlaylist(userId string, playlistId string) bool {
+
+
+	// client := spotify.Authenticator{}.NewClient(token)
+
+	results, err := client.AddTracksToPlaylist(userId,  spotify.ID(playlistId), spotify.ID("76r8BBGixz8suvdjcxMze3")) 
+
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+	fmt.Println(results)
+	return true
 }
 
 
