@@ -5,20 +5,25 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"log"
-	"context"
-	"bytes"
+	// "log"
+	// "context"
+	// "bytes"
 	"net/http"
 	"io/ioutil"
-	"encoding/json"
-	"github.com/zmb3/spotify"
+	// "encoding/json"
+	// "github.com/zmb3/spotify"
 	"strings"
+	// "golang.org/x/oauth2/clientcredentials"
+	// "github.com/markbates/goth"
+	// "github.com/markbates/goth/providers/spotify"
 	// "reflect"
 	"regexp"
 	"github.com/bwmarrin/discordgo"
 	"github.com/tkanos/gonfig"
-	"golang.org/x/oauth2/clientcredentials"
+	// "golang.org/x/oauth2"
 
+    "net/url"
+    "strconv"
 )
 
 // I need to clean up this config code
@@ -30,17 +35,21 @@ type Configuration struct {
 	DiscordClientId string
 	DiscordSecret string
 	DiscordBotToken string
+	SpotifyAccessToken string
+	SpotifyRefreshToken string
+	SpotifyTokenExpires string
+	SpotifyPlaylistId string
+	UserID string
 }
 
 var (
-	spotifyState = "abc123"
-	client spotify.Client
-	spotifyAuth spotify.Authenticator
-	spotifyCh = make(chan *spotify.Client)
+	// spotifyState = "abc123"
+	// client spotify.Client
+	// spotifyAuth spotify.Authenticator
+	// spotifyCh = make(chan *spotify.Client)
 	DiscordSecret = configuration.DiscordSecret
 	configuration Configuration;
 	//username should be pulled from conf
-	userID string = "hollingsxd"
 
 )
 	
@@ -50,15 +59,12 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	os.Setenv("SPOTIFY_ID", configuration.SpotifyClientId)
-	os.Setenv("SPOTIFY_SECRET", configuration.SpotifySecret)
-	spotifyAuth = spotify.NewAuthenticator(configuration.SpotifyRedirectURI, spotify.ScopeUserReadCurrentlyPlaying, spotify.ScopeUserReadPlaybackState, spotify.ScopeUserModifyPlaybackState, spotify.ScopePlaylistModifyPrivate, spotify.ScopePlaylistModifyPublic)
 }
 
 
 func main() {
 
-	ConnectSpotify()
+	// ConnectSpotify()
 	//spotifyAddToPlaylist("hollingsxd","2z2WuA7x7Op9TvBoYh7y3w")
 
 	dg, err := discordgo.New("Bot " + configuration.DiscordBotToken)
@@ -87,116 +93,113 @@ func main() {
 
 }
 
-// This runs every time a message sis received
+// This runs every time a message is received
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	fmt.Println(m.Content)
-	if (checkValidLink(m.Content)) {
-		//https://open.spotify.com/user/hollingsxd/playlist/2z2WuA7x7Op9TvBoYh7y3w?si=wG4dJ_KhTfWbl7nJ94pMLA
-		// yes, this playlist ID shouldn't be here. I'll fix it later
-		spotifyAddToPlaylist(userID,"2z2WuA7x7Op9TvBoYh7y3w", getSongId(m.Content))
-		s.MessageReactionAdd(m.ChannelID, m.ID, "🎵")
+		if(getSongId(m.Content)!="") {
+			addSongToPlaylist(configuration.SpotifyPlaylistId,getSongId(m.Content))
+			s.MessageReactionAdd(m.ChannelID, m.ID, "🎵")
+		}
+		if(m.Content=="!playlist"){
+			s.ChannelMessageSend(m.ChannelID, "https://open.spotify.com/user/"+configuration.UserID+"/playlist/"+configuration.SpotifyPlaylistId)
+
+		}
 
 	}
 
+
+
+//The Oauth token/refresh flow still needs to be automated. 
+func getOuthTokens(){
+  	apiUrl := "https://accounts.spotify.com"
+    resource := "/api/token"
+    data := url.Values{}
+    data.Set("grant_type", "authorization_code")
+    data.Add("code", configuration.SpotifyCode)
+    data.Add("redirect_uri", configuration.SpotifyRedirectURI)
+    data.Add("state", "abc123") //  I know...
+    data.Add("client_id", configuration.SpotifyClientId)
+    data.Add("client_secret", configuration.SpotifySecret)
+
+    u, _ := url.ParseRequestURI(apiUrl)
+    u.Path = resource
+    urlStr := u.String() // 'https://api.com/user/'
+
+    client := &http.Client{}
+    r, _ := http.NewRequest("POST", urlStr, strings.NewReader(data.Encode())) // URL-encoded payload
+    // r.Header.Add("Authorization", "auth_token=\"XXXXXXX\"")
+    r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+    r.Header.Add("Content-Length", strconv.Itoa(len(data.Encode())))
+
+    resp, _ := client.Do(r)
+	body, err := ioutil.ReadAll(resp.Body)
+	bodyString := string(body) 
+	fmt.Println(bodyString)
+	fmt.Println(err)  
 }
 
- func GetTokensScope(tokUrl string, clientId string, secret string) (string,error){
-        body := bytes.NewBuffer([]byte("grant_type=client_credentials&client_id="+clientId+"&client_secret="+secret+"&response_type=token"))
-        req, err := http.NewRequest("POST",tokUrl,body)
-        req.Header.Set("Content-Type","application/x-www-form-urlencoded")  
-        client := &http.Client{}
-        resp, err := client.Do(req)
-        if err != nil {
-            return "",err
-        }
+func refreshToken() {
+	apiUrl := "https://accounts.spotify.com"
+    resource := "/api/token"
+    data := url.Values{}
+    data.Set("grant_type", "refresh_token")
+    data.Add("refresh_token", configuration.SpotifyRefreshToken)
+    data.Add("redirect_uri", configuration.SpotifyRedirectURI)
+    data.Add("state", "abc123")
+    data.Add("client_id", configuration.SpotifyClientId)
+    data.Add("client_secret", configuration.SpotifySecret)
+    u, _ := url.ParseRequestURI(apiUrl)
+    u.Path = resource
+    urlStr := u.String() // 'https://api.com/user/'
+    client := &http.Client{}
+    r, _ := http.NewRequest("POST", urlStr, strings.NewReader(data.Encode())) // URL-encoded payload
+    // r.Header.Add("Authorization", "auth_token=\"XXXXXXX\"")
+    r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+    r.Header.Add("Content-Length", strconv.Itoa(len(data.Encode())))
+    resp, _ := client.Do(r)
+	body, err := ioutil.ReadAll(resp.Body)
+	bodyString := string(body) 
+	fmt.Println(bodyString)
+	fmt.Println(err)  
+}
 
-        defer resp.Body.Close()
-        rsBody, err := ioutil.ReadAll(resp.Body)
-        type WithScope struct {
-            Scope string `json:"scope"`
-        }
-        var dat WithScope
-        err = json.Unmarshal(rsBody,&dat)
-        if err != nil {
-            return "",err
-        }
+func addSongToPlaylist(playlistId string, songId string) {
 
-        return dat.Scope,err
-    }
-
-func ConnectSpotify(){
-	// fmt.Println(spotify.TokenURL)
-// 
-	config := &clientcredentials.Config{
-		ClientID:     os.Getenv("SPOTIFY_ID"),
-		ClientSecret: os.Getenv("SPOTIFY_SECRET"),
-		TokenURL:     spotify.TokenURL,
-		Scopes: []string{"playlist-modify-private","playlist-modify-public"},
-	}
-	// fmt.Println(config)
-	token, err := config.Token(context.Background())
-	if err != nil {
-		log.Fatalf("couldn't get token: %v", err)
-	}
-
-	// fmt.Println(GetTokensScope(spotify.TokenURL, os.Getenv("SPOTIFY_ID"), os.Getenv("SPOTIFY_SECRET")))
-	// fmt.Println(token.AccessToken)
-
-	// I can't figure out how to get scopes working, so I load the oauth token from config. This will expire in 3600 seconds so its WRONG
-	token.AccessToken = configuration.SpotifyCode
-	// fmt.Println(reflect.TypeOf(token))
-	client = spotifyAuth.NewClient(token)
-
+	// This is bad
+	apiUrl := "https://api.spotify.com/"
+    resource := "/v1/users/"+configuration.UserID+"/playlists/"+playlistId+"/tracks"
+    fmt.Println(resource)
+    data := url.Values{}
+ 	data.Set("position", "0")
+    data.Add("uris", "spotify:track:"+songId)
+    u, _ := url.ParseRequestURI(apiUrl)
+    u.Path = resource
+    urlStr := u.String() // 'https://api.com/user/'
+    urlStr += "?position=0&uris=spotify:track:"+songId
+    fmt.Println(urlStr)
+    client := &http.Client{}
+    r, _ := http.NewRequest("POST", urlStr, strings.NewReader(data.Encode())) // URL-encoded payload
+    r.Header.Add("Authorization", "Bearer "+configuration.SpotifyAccessToken)
+    resp, _ := client.Do(r)
+	body, err := ioutil.ReadAll(resp.Body)
+	bodyString := string(body) 
+	fmt.Println(bodyString)
+	fmt.Println(err)  
 
 
 }
-
-func spotifyFindTrack(trackId string) string{
-			// search for playlists and albums containing "holiday"
-	results, err := client.GetTrack(spotify.ID(trackId))
-
-	if err != nil {
-		return "Not Found"
-		log.Fatal(err)
-	}
-	fmt.Println(results.Name)
-
-	return results.Name
-} 
-
-func spotifyAddToPlaylist(userId string, playlistId string, trackId string) bool {
-
-
-	// client := spotify.Authenticator{}.NewClient(token)
-
-	results, err := client.AddTracksToPlaylist(userId,  spotify.ID(playlistId), spotify.ID(trackId)) 
-
-	if err != nil {
-		fmt.Println(err)
-		return false
-	}
-	fmt.Println(results)
-	return true
-}
-
-
-// Check if this message contains a spotify song
-func checkValidLink(content string) bool {
-
-	if( strings.Contains(content, "open.spotify.com")) {
-		return true
-	}
-	return false
-}
-
-//https://open.spotify.com/track/76r8BBGixz8suvdjcxMze3?si=IuXCz7JeTvu2xFAodJMa9Q
 
 // Add song to spotify playlist
 func getSongId(content string) string {
 
+	// Stop interpreting playlist links as song links 
+	if(strings.Contains(content, "playlist")){
+		return ""
+	}
 	re := regexp.MustCompile("[a-zA-Z0-9]{22}")
 	songId := re.FindString(content)
 	// songName := spotifyFindTrack(songId)
+	fmt.Println(songId)
 	return songId
 
 }
