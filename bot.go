@@ -43,13 +43,9 @@ type Configuration struct {
 }
 
 var (
-	// spotifyState = "abc123"
-	// client spotify.Client
-	// spotifyAuth spotify.Authenticator
-	// spotifyCh = make(chan *spotify.Client)
+
 	DiscordSecret = configuration.DiscordSecret
 	configuration Configuration;
-	//username should be pulled from conf
 
 )
 	
@@ -63,9 +59,6 @@ func init() {
 
 
 func main() {
-
-	// ConnectSpotify()
-	//spotifyAddToPlaylist("hollingsxd","2z2WuA7x7Op9TvBoYh7y3w")
 
 	dg, err := discordgo.New("Bot " + configuration.DiscordBotToken)
 	if err != nil {
@@ -127,7 +120,6 @@ func getOuthTokens(){
 
     client := &http.Client{}
     r, _ := http.NewRequest("POST", urlStr, strings.NewReader(data.Encode())) // URL-encoded payload
-    // r.Header.Add("Authorization", "auth_token=\"XXXXXXX\"")
     r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
     r.Header.Add("Content-Length", strconv.Itoa(len(data.Encode())))
 
@@ -153,7 +145,6 @@ func refreshToken() {
     urlStr := u.String() // 'https://api.com/user/'
     client := &http.Client{}
     r, _ := http.NewRequest("POST", urlStr, strings.NewReader(data.Encode())) // URL-encoded payload
-    // r.Header.Add("Authorization", "auth_token=\"XXXXXXX\"")
     r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
     r.Header.Add("Content-Length", strconv.Itoa(len(data.Encode())))
     resp, _ := client.Do(r)
@@ -165,7 +156,7 @@ func refreshToken() {
 
 func addSongToPlaylist(playlistId string, songId string) {
 
-	// This is bad
+	// This is ugly
 	apiUrl := "https://api.spotify.com/"
     resource := "/v1/users/"+configuration.UserID+"/playlists/"+playlistId+"/tracks"
     fmt.Println(resource)
@@ -198,7 +189,6 @@ func getSongId(content string) string {
 	}
 	re := regexp.MustCompile("[a-zA-Z0-9]{22}")
 	songId := re.FindString(content)
-	// songName := spotifyFindTrack(songId)
 	fmt.Println(songId)
 	return songId
 
