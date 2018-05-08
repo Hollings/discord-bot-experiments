@@ -11,7 +11,7 @@ This bot saves Spotify song links that are posted to a Discord server into a Spo
 
 `!ping` - Pong
 
-`!playlist <playlistID>` - Assigns a playlist to be used to save songs (Probably should be locked to a certain mod or admin user role)
+`!playlist <username> <playlistID>` - Assigns a playlist to be used to save songs (Probably should be locked to a certain mod or admin user role)
 
 `!remove <songID>` - Removes a song from the playlist
 
