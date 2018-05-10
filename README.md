@@ -8,6 +8,11 @@ This bot saves Spotify song links that are posted to a Discord server into a Spo
 ## Commands
 
 `!playlist` - Returns a link to the playlist that songs are listening to
+`<any spotify song share link>` - Adds a song to the playlist
+
+
+
+## To Do:
 
 `!ping` - Pong
 
@@ -16,3 +21,9 @@ This bot saves Spotify song links that are posted to a Discord server into a Spo
 `!remove <songID>` - Removes a song from the playlist
 
 `!undo` - Removes the last added song from the playlist
+
+Bot reacts with a thumbs up and a thumbs down. If the song link gets more "downvotes", song is removed from the playlist
+
+Don't add duplicate songs
+
+
