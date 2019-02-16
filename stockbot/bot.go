@@ -17,9 +17,9 @@ import (
     // "math/rand"
     "log"
     // "bufio"
-    "database/sql"
+    // "database/sql"
     "time"
-    _ "github.com/mattn/go-sqlite3"
+    // _ "github.com/mattn/go-sqlite3"
 )
 
 // I need to clean up this config code
@@ -89,8 +89,8 @@ func init() {
 }
 
 func connectSqlite(){
-		db, err := sql.Open("sqlite3", "./foo.db")
-        checkErr(err)
+		// db, err := sql.Open("sqlite3", "./foo.db")
+  //       checkErr(err)
 }
 
 func main() {
