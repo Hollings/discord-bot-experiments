@@ -80,7 +80,6 @@ var (
     DiscordSecret = configuration.DiscordSecret
     Stocks map[string]map[string]int
     configuration Configuration;
-    banStrings = []string{"get rekt noob scrub","ur mums gay lol","ligma","ur dad gay","ur moms fat"} 
 )
     
 func init() {
@@ -93,7 +92,7 @@ func init() {
 
 func connectSqlite(){
         // db, err := sql.Open("sqlite3", "./foo.db")
-  //       checkErr(err)
+        // checkErr(err)
 }
 
 func main() {
