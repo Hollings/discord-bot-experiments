@@ -37,7 +37,6 @@ var (
 
 	DiscordSecret = configuration.DiscordSecret
 	configuration Configuration;
-	banStrings = []string{"get rekt noob scrub","ur mums gay lol","ligma","ur dad gay","ur moms fat"} 
 
 )
 	
